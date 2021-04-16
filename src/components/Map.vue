@@ -1,0 +1,77 @@
+<template>
+  <div>
+    <div class="map" ref="mapContainer" />
+  </div>
+</template>
+
+<script>
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+export default {
+  name: "Map",
+  props: {
+    date: String,
+  },
+  watch: {
+    date() {
+      this.mapInit();
+    },
+  },
+  methods: {
+    mapInit() {
+      const tilePath =
+        "wmts/epsg3857/best/" +
+        "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
+        `${this.date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+
+      // Add token here when using Mapbox layers
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiYnVyb3Z5YSIsImEiOiJjanVucnE3bHMweHRlM3pvNXAycXllaHl5In0.ytKUDnITJq8JScaXHW3qzQ";
+
+      new mapboxgl.Map({
+        container: this.$refs.mapContainer,
+        style: {
+          version: 8,
+          sources: {
+            gibs: {
+              type: "raster",
+              tiles: [
+                "https://gibs-a.earthdata.nasa.gov/" + tilePath,
+                "https://gibs-b.earthdata.nasa.gov/" + tilePath,
+                "https://gibs-c.earthdata.nasa.gov/" + tilePath,
+              ],
+              tileSize: 256,
+            },
+          },
+          layers: [
+            {
+              id: "gibs",
+              type: "raster",
+              source: "gibs",
+              minzoom: 0,
+              maxzoom: 8,
+            },
+          ],
+        },
+        center: [0, 0],
+        minZoom: 0,
+        maxZoom: 7,
+        zoom: 2,
+      });
+    },
+  },
+  mounted() {
+    this.mapInit();
+  },
+};
+</script>
+
+<style scoped lang="scss">
+.map {
+  position: absolute;
+  width: 80%;
+  height: 100%;
+  right: 0;
+}
+</style>
