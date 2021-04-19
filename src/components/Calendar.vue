@@ -1,146 +1,102 @@
 <template>
-  <div class="calendar">
+  <div class="calendar" @scroll="onScroll">
     <h3>Календарь снимков</h3>
-    <div class="calendar__map" ref="mapContainer1" />
-    <button @click="$emit('handleAddDay', '2021-04-16')">16.04.2021</button>
-    <div class="calendar__map" ref="mapContainer2" />
-    <button @click="$emit('handleAddDay', '2021-04-15')">15.04.2021</button>
-    <div class="calendar__map" ref="mapContainer3" />
-    <button @click="$emit('handleAddDay', '2021-04-14')">14.04.2021</button>
+    <div v-for="(date, index) in dates" :key="index">
+      <div class="calendar__map" :ref="`mapContainer${index + 1}`" />
+      <button @click="$emit('handleAddDay', date)">
+        {{ date.split("-").reverse().join(".") }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
+/* eslint-disable no-debugger */
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 export default {
-  name: "Map",
-  props: {
-    date: String,
+  name: "Calendar",
+  data() {
+    return {
+      dates: [],
+    };
   },
-  watch: {
-    date() {
-      this.mapInit();
-    },
+  updated() {
+    this.mapInit();
   },
   methods: {
     mapInit() {
-      const tilePath1 =
-        "wmts/epsg3857/best/" +
-        "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
-        "2021-04-16/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg";
-
-      const tilePath2 =
-        "wmts/epsg3857/best/" +
-        "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
-        "2021-04-15/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg";
-
-      const tilePath3 =
-        "wmts/epsg3857/best/" +
-        "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
-        "2021-04-14/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg";
-
-      // Add token here when using Mapbox layers
       mapboxgl.accessToken =
         "pk.eyJ1IjoiYnVyb3Z5YSIsImEiOiJjanVucnE3bHMweHRlM3pvNXAycXllaHl5In0.ytKUDnITJq8JScaXHW3qzQ";
 
-      new mapboxgl.Map({
-        container: this.$refs.mapContainer1,
-        style: {
-          version: 8,
-          sources: {
-            gibs: {
-              type: "raster",
-              tiles: [
-                "https://gibs-a.earthdata.nasa.gov/" + tilePath1,
-                "https://gibs-b.earthdata.nasa.gov/" + tilePath1,
-                "https://gibs-c.earthdata.nasa.gov/" + tilePath1,
-              ],
-              tileSize: 256,
-            },
-          },
-          layers: [
-            {
-              id: "gibs",
-              type: "raster",
-              source: "gibs",
-              minzoom: 0,
-              maxzoom: 0,
-            },
-          ],
-        },
-        center: [0, 0],
-        minZoom: 0,
-        maxZoom: 0,
-        zoom: 0,
-      });
+      this.dates.forEach((date, i) => {
+        const tilePath =
+          "wmts/epsg3857/best/" +
+          "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
+          `${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
 
-      new mapboxgl.Map({
-        container: this.$refs.mapContainer2,
-        style: {
-          version: 8,
-          sources: {
-            gibs: {
-              type: "raster",
-              tiles: [
-                "https://gibs-a.earthdata.nasa.gov/" + tilePath2,
-                "https://gibs-b.earthdata.nasa.gov/" + tilePath2,
-                "https://gibs-c.earthdata.nasa.gov/" + tilePath2,
-              ],
-              tileSize: 256,
+        new mapboxgl.Map({
+          container: this.$refs[`mapContainer${i + 1}`][0],
+          style: {
+            version: 8,
+            sources: {
+              gibs: {
+                type: "raster",
+                tiles: [
+                  "https://gibs-a.earthdata.nasa.gov/" + tilePath,
+                  "https://gibs-b.earthdata.nasa.gov/" + tilePath,
+                  "https://gibs-c.earthdata.nasa.gov/" + tilePath,
+                ],
+                tileSize: 256,
+              },
             },
+            layers: [
+              {
+                id: "gibs",
+                type: "raster",
+                source: "gibs",
+              },
+            ],
           },
-          layers: [
-            {
-              id: "gibs",
-              type: "raster",
-              source: "gibs",
-              minzoom: 0,
-              maxzoom: 0,
-            },
-          ],
-        },
-        center: [0, 0],
-        minZoom: 0,
-        maxZoom: 0,
-        zoom: 0,
+          zoom: 0,
+          dragPan: false,
+          scrollZoom: false,
+        });
       });
-
-      new mapboxgl.Map({
-        container: this.$refs.mapContainer3,
-        style: {
-          version: 8,
-          sources: {
-            gibs: {
-              type: "raster",
-              tiles: [
-                "https://gibs-a.earthdata.nasa.gov/" + tilePath3,
-                "https://gibs-b.earthdata.nasa.gov/" + tilePath3,
-                "https://gibs-c.earthdata.nasa.gov/" + tilePath3,
-              ],
-              tileSize: 256,
-            },
-          },
-          layers: [
-            {
-              id: "gibs",
-              type: "raster",
-              source: "gibs",
-              minzoom: 0,
-              maxzoom: 0,
-            },
-          ],
-        },
-        center: [0, 0],
-        minZoom: 0,
-        maxZoom: 0,
-        zoom: 0,
-      });
+    },
+    onScroll({ target: { scrollTop, clientHeight, scrollHeight } }) {
+      if (Math.ceil(scrollTop) + clientHeight >= scrollHeight) {
+        this.getLastDates();
+      }
+    },
+    getLastDates(date) {
+      const dateArr = this.dates.length
+        ? this.dates[this.dates.length - 1].split("-")
+        : date.split("-");
+      for (let i = 1; i < 5; i++) {
+        const newDateArr = [...dateArr];
+        newDateArr[newDateArr.length - 1] -= i;
+        if (newDateArr[newDateArr.length - 1] < 1) {
+          return;
+        }
+        if (newDateArr[newDateArr.length - 1] < 10) {
+          newDateArr[newDateArr.length - 1] = `0${
+            newDateArr[newDateArr.length - 1]
+          }`;
+        }
+        this.dates.push(newDateArr.join("-"));
+      }
     },
   },
   mounted() {
-    this.mapInit();
+    const currentDate = new Date()
+      .toLocaleDateString()
+      .split(".")
+      .reverse()
+      .join("-");
+    this.$emit("handleAddDay", currentDate);
+    this.getLastDates(currentDate);
   },
 };
 </script>
@@ -148,10 +104,30 @@ export default {
 <style scoped lang="scss">
 .calendar {
   width: 20%;
+  height: 100vh;
+  background-color: #000;
+  color: #fff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
 
   &__map {
-    width: 300px;
-    height: 150px;
+    width: 280px;
+    height: 200px;
+    margin: 10px;
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #000;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #787878;
+    border: 1px solid #000;
   }
 }
 </style>

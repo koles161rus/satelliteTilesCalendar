@@ -17,7 +17,7 @@ export default {
   },
   data() {
     return {
-      date: "2021-04-16",
+      date: "",
     };
   },
   methods: {
@@ -40,5 +40,6 @@ export default {
 
 body {
   margin: 0;
+  overflow: hidden;
 }
 </style>
