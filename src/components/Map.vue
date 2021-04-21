@@ -13,6 +13,11 @@ export default {
   props: {
     date: String,
   },
+  data() {
+    return {
+      map: null,
+    };
+  },
   watch: {
     date() {
       this.mapInit();
@@ -20,6 +25,10 @@ export default {
   },
   methods: {
     mapInit() {
+      if (this.map) {
+        this.map.remove();
+      }
+
       const tilePath =
         "wmts/epsg3857/best/" +
         "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
@@ -29,7 +38,7 @@ export default {
       mapboxgl.accessToken =
         "pk.eyJ1IjoiYnVyb3Z5YSIsImEiOiJjanVucnE3bHMweHRlM3pvNXAycXllaHl5In0.ytKUDnITJq8JScaXHW3qzQ";
 
-      new mapboxgl.Map({
+      this.map = new mapboxgl.Map({
         container: this.$refs.mapContainer,
         style: {
           version: 8,

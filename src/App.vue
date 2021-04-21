@@ -22,7 +22,7 @@ export default {
   },
   methods: {
     handleAddDay(date) {
-      this.date = date;
+      this.date = date.toLocaleDateString().split(".").reverse().join("-");
     },
   },
 };
