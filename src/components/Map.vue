@@ -34,7 +34,6 @@ export default {
         "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
         `${this.date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
 
-      // Add token here when using Mapbox layers
       mapboxgl.accessToken =
         "pk.eyJ1IjoiYnVyb3Z5YSIsImEiOiJjanVucnE3bHMweHRlM3pvNXAycXllaHl5In0.ytKUDnITJq8JScaXHW3qzQ";
 

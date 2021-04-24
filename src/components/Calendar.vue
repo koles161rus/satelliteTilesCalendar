@@ -1,11 +1,15 @@
 <template>
   <div class="calendar" @scroll="onScroll">
     <h3>Календарь снимков</h3>
-    <div v-for="(date, index) in dates" :key="index">
-      <div class="calendar__map" :ref="`mapContainer${index + 1}`" />
-      <span class="calendar__btn" @click="handleClick(date, index)">
-        {{ date.toLocaleDateString() }}
-      </span>
+    <div
+      v-for="(date, index) in dates"
+      :key="index"
+      class="calendar__item"
+      :ref="`item${index + 1}`"
+      @click="handleClick(date, index)"
+    >
+      <div class="calendar__item-map" :ref="`mapContainer${index + 1}`" />
+      <span class="calendar__item-date">{{ date.toLocaleDateString() }}</span>
     </div>
   </div>
 </template>
@@ -18,65 +22,137 @@ export default {
   name: "Calendar",
   data() {
     return {
+      maps: [],
       dates: [],
+      lastScrollTop: 0,
+      lastTopEl: 0,
+      lastBottomEl: 0,
     };
   },
   updated() {
-    this.mapInit();
+    this.dates.forEach((date, i) => {
+      if (i > this.dates.length - 8) {
+        this.mapInit(date, i);
+      }
+    });
   },
   methods: {
-    mapInit() {
+    mapInit(date, i) {
       mapboxgl.accessToken =
         "pk.eyJ1IjoiYnVyb3Z5YSIsImEiOiJjanVucnE3bHMweHRlM3pvNXAycXllaHl5In0.ytKUDnITJq8JScaXHW3qzQ";
 
-      this.dates.forEach((date, i) => {
-        if (i > this.dates.length - 5) {
-          const tilePath =
-            "wmts/epsg3857/best/" +
-            "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
-            `${date
-              .toLocaleDateString()
-              .split(".")
-              .reverse()
-              .join("-")}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+      const tilePath =
+        "wmts/epsg3857/best/" +
+        "MODIS_Terra_CorrectedReflectance_TrueColor/default/" +
+        `${date
+          .toLocaleDateString()
+          .split(".")
+          .reverse()
+          .join("-")}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
 
-          new mapboxgl.Map({
-            container: this.$refs[`mapContainer${i + 1}`][0],
-            style: {
-              version: 8,
-              sources: {
-                gibs: {
-                  type: "raster",
-                  tiles: [
-                    "https://gibs-a.earthdata.nasa.gov/" + tilePath,
-                    "https://gibs-b.earthdata.nasa.gov/" + tilePath,
-                    "https://gibs-c.earthdata.nasa.gov/" + tilePath,
-                  ],
-                  tileSize: 256,
-                },
-              },
-              layers: [
-                {
-                  id: "gibs",
-                  type: "raster",
-                  source: "gibs",
-                },
+      const map = new mapboxgl.Map({
+        container: this.$refs[`mapContainer${i + 1}`][0],
+        style: {
+          version: 8,
+          sources: {
+            gibs: {
+              type: "raster",
+              tiles: [
+                "https://gibs-a.earthdata.nasa.gov/" + tilePath,
+                "https://gibs-b.earthdata.nasa.gov/" + tilePath,
+                "https://gibs-c.earthdata.nasa.gov/" + tilePath,
               ],
+              tileSize: 256,
             },
-            zoom: 0,
-            dragPan: false,
-            scrollZoom: false,
-          });
-        }
+          },
+          layers: [
+            {
+              id: "gibs",
+              type: "raster",
+              source: "gibs",
+            },
+          ],
+        },
+        zoom: 0,
+        dragPan: false,
+        scrollZoom: false,
+        doubleClickZoom: false,
       });
+
+      map.getCanvasContainer().style.cursor = "pointer";
+      if (i < this.maps.length) {
+        this.maps.splice(i, 1, map);
+      } else {
+        this.maps.push(map);
+      }
     },
     onScroll({ target: { scrollTop, clientHeight, scrollHeight } }) {
       if (Math.ceil(scrollTop) + clientHeight >= scrollHeight) {
         this.getLastDates(this.dates[this.dates.length - 1]);
+
+        this.maps.forEach((map, i) => {
+          if (map && i < this.maps.length - 7) {
+            map.remove();
+            this.maps.splice(i, 1, null);
+          }
+        });
       }
+
+      const itemScrollHeight = Math.ceil(scrollHeight / this.dates.length);
+      if (scrollTop > this.lastScrollTop) {
+        for (let i = 0; i < this.dates.length; i++) {
+          if (Math.ceil(scrollTop) > itemScrollHeight * i) {
+            this.lastBottomEl = i;
+          }
+        }
+
+        this.maps.forEach((map, i) => {
+          if (i === this.lastBottomEl - 10 && map) {
+            map.remove();
+            this.maps.splice(i, 1, null);
+          }
+        });
+
+        this.maps.forEach((map, i) => {
+          if (i === this.lastBottomEl + 4 && !map) {
+            this.mapInit(this.dates[i], i);
+          }
+        });
+      } else {
+        for (let i = 13; i < this.dates.length; i++) {
+          if (Math.ceil(scrollTop) < scrollHeight - itemScrollHeight * i) {
+            this.lastTopEl = i;
+          }
+        }
+
+        this.maps.forEach((map, i) => {
+          if (i === this.dates.length - this.lastTopEl + 14 && map) {
+            map.remove();
+            this.maps.splice(i, 1, null);
+          }
+        });
+
+        this.maps.forEach((map, i) => {
+          if (i === this.dates.length - this.lastTopEl - 1 && !map) {
+            this.mapInit(this.dates[i], i);
+          }
+        });
+      }
+
+      this.maps.forEach((map, i) => {
+        if (map && !this.maps[i - 1] && !this.maps[i + 1]) {
+          map.remove();
+          this.maps.splice(i, 1, null);
+        }
+        if (!map && this.maps[i - 1] && this.maps[i + 1]) {
+          this.mapInit(this.dates[i], i);
+        }
+      });
+
+      this.lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     },
     getLastDates(date) {
-      for (let i = 1; i < 5; i++) {
+      for (let i = 1; i < 8; i++) {
         let newDate = new Date(date.getTime());
         newDate.setDate(date.getDate() - i);
         this.dates.push(newDate);
@@ -87,7 +163,7 @@ export default {
       Object.values(this.$refs).forEach((container) => {
         container[0].style.border = "";
       });
-      this.$refs[`mapContainer${index + 1}`][0].style.border = "2px solid #00f";
+      this.$refs[`item${index + 1}`][0].style.border = "2px solid #00f";
     },
   },
   mounted() {
@@ -108,14 +184,25 @@ export default {
   overflow-x: hidden;
   scrollbar-width: thin;
 
-  &__map {
+  &__item {
     width: 280px;
     height: 200px;
     margin: 10px;
-  }
-
-  &__btn {
+    position: relative;
+    display: inline-block;
     cursor: pointer;
+
+    &-map {
+      width: 280px;
+      height: 200px;
+    }
+
+    &-date {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #000;
+    }
   }
 
   &::-webkit-scrollbar {
